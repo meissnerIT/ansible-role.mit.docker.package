@@ -1,0 +1,31 @@
+---
+
+#20411: Deployment "Intranet Monheim"
+# https://docs.docker.com/engine/install/debian/
+
+- set_fact:
+    docker_apt_repository: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+- name: Install apt-transport-https
+  apt:
+    pkg: apt-transport-https
+- name: Remove deprecated apt gpg key from /etc/apt/trusted.gpg
+  command: apt-key del 0EBFCD88
+  changed_when: no
+- name: "Add apt gpg key for download.docker.com"
+  copy: src=docker.gpg dest=/usr/share/keyrings/docker.gpg
+- name: Enable apt repository
+  apt_repository:
+    repo: "{{ docker_apt_repository }}"
+    state: present
+  changed_when: no
+- name: Install / update docker
+  apt:
+    pkg: docker-ce,docker-ce-cli,containerd.io
+    update_cache: yes
+    state: latest
+- name: Enable apt repository
+  apt_repository:
+    repo: "{{ docker_apt_repository }}"
+    state: absent
+  changed_when: no
+
