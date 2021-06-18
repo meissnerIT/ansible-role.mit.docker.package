@@ -23,11 +23,24 @@
     pkg: docker-ce,docker-ce-cli,containerd.io
     update_cache: yes
     state: latest
-- name: Enable apt repository
+- name: Disable apt repository
   apt_repository:
     repo: "{{ docker_apt_repository }}"
     state: absent
   changed_when: no
+
+- name: Set docker mtu
+  # https://github.com/ParticleDecay/ansible-jsonpatch
+  json_patch:
+    src: /etc/docker/daemon.json
+    operations:
+      - op: add
+        path: /mtu
+        value: 1200
+    pretty: yes
+    create: yes
+  when: docker_mtu is defined
+  notify: restart docker
 
 - name: Install docker compose
   include_tasks: docker-compose.yml
