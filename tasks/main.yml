@@ -1,6 +1,6 @@
 ---
 
-#20411: Deployment "Intranet Monheim"
+#20411: Deployment
 # https://docs.docker.com/engine/install/debian/
 
 - set_fact:
