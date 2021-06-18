@@ -29,3 +29,7 @@
     state: absent
   changed_when: no
 
+- name: Install docker compose
+  include_tasks: docker-compose.yml
+  when: docker_compose_version is defined
+
