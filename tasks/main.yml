@@ -1,5 +1,15 @@
 ---
 
+# # Variables
+#
+# docker compose
+# * New installations: docker_compose_packages=docker-compose-plugin
+# * Compatible: docker_compose_packages=docker-compose,docker-compose-plugin
+# * Deprecated: docker_compose_version=1.29.2
+
+# https://docs.docker.com/config/daemon/systemd/
+# https://www.freedesktop.org/software/systemd/man/systemd.unit.html#Unit%20File%20Load%20Path
+
 #20411: Deployment
 # https://docs.docker.com/engine/install/debian/
 
@@ -8,11 +18,10 @@
 - name: Install apt-transport-https
   apt:
     pkg: apt-transport-https
-- name: Remove deprecated apt gpg key from /etc/apt/trusted.gpg
-  command: apt-key del 0EBFCD88
-  changed_when: no
 - name: "Add apt gpg key for download.docker.com"
-  copy: src=docker.gpg dest=/usr/share/keyrings/docker.gpg
+  copy:
+    src: docker.gpg
+    dest: /usr/share/keyrings/docker.gpg
 - name: Enable apt repository
   apt_repository:
     repo: "{{ docker_apt_repository }}"
@@ -23,11 +32,31 @@
     pkg: docker-ce,docker-ce-cli,containerd.io
     update_cache: yes
     state: latest
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks_loops.html
+- name: Install compose (package)
+  apt:
+    name: "{{ docker_compose_packages }}"
+  when: docker_compose_packages is defined
 - name: Disable apt repository
   apt_repository:
     repo: "{{ docker_apt_repository }}"
     state: absent
   changed_when: no
+- name: Add local-download.docker.com.list.disabled
+  template:
+    src: local-download.docker.com.list
+    dest: /etc/apt/sources.list.d/local-download.docker.com.list.disabled
+
+# https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
+# group_vars/proxy_required
+- name: Set docker http proxy environment variables
+  template:
+    src: "http-proxy.conf"
+    dest: /etc/systemd/system/docker.service.d/
+  when: proxy_env is defined
+  notify:
+    - Reload systemd
+    - Restart docker
 
 - name: Set docker mtu
   # https://github.com/ParticleDecay/ansible-jsonpatch
@@ -42,7 +71,7 @@
   when: docker_mtu is defined
   notify: restart docker
 
-- name: Install docker compose
+- name: Install docker compose (manually)
   include_tasks: docker-compose.yml
   when: docker_compose_version is defined
 
