@@ -72,6 +72,6 @@
   notify: restart docker
 
 - name: Install docker compose (manually)
-  include_tasks: docker-compose.yml
+  include_tasks: docker-compose-manually.yml
   when: docker_compose_version is defined
 
