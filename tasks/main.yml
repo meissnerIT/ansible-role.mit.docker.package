@@ -2,10 +2,14 @@
 
 # # Variables
 #
-# docker compose
-# * New installations: docker_compose_packages=docker-compose-plugin
-# * Compatible: docker_compose_packages=docker-compose,docker-compose-plugin
-# * Deprecated: docker_compose_version=1.29.2
+# compose
+# https://docs.docker.com/compose/migrate/
+#
+# `docker-compose` has been replaced by Compose v2 via `docker compose`
+# 
+# * v1 installations: docker_compose_packages=docker-compose-plugin
+# * v1 compatible: docker_compose_packages=docker-compose,docker-compose-plugin
+# * v1 deprecated: docker_compose_version=1.29.2
 
 # https://docs.docker.com/config/daemon/systemd/
 # https://www.freedesktop.org/software/systemd/man/systemd.unit.html#Unit%20File%20Load%20Path
