@@ -6,7 +6,7 @@
 # https://docs.docker.com/compose/migrate/
 #
 # `docker-compose` has been replaced by Compose v2 via `docker compose`
-# 
+#
 # * v1 installations: docker_compose_packages=docker-compose-plugin
 # * v1 compatible: docker_compose_packages=docker-compose,docker-compose-plugin
 # * v1 deprecated: docker_compose_version=1.29.2
@@ -14,49 +14,29 @@
 # https://docs.docker.com/config/daemon/systemd/
 # https://www.freedesktop.org/software/systemd/man/systemd.unit.html#Unit%20File%20Load%20Path
 
-#20411: Deployment
+# Deployment [MIT-20411]
 # https://docs.docker.com/engine/install/debian/
 
-- set_fact:
-    docker_apt_repository: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
-- name: Install apt-transport-https
-  apt:
-    pkg: apt-transport-https
-- name: "Add apt gpg key for download.docker.com"
-  copy:
-    src: docker.gpg
-    dest: /usr/share/keyrings/docker.gpg
-- name: Enable apt repository
-  apt_repository:
-    repo: "{{ docker_apt_repository }}"
-    state: present
-  changed_when: no
-- name: Install / update docker
-  apt:
-    pkg: docker-ce,docker-ce-cli,containerd.io
-    update_cache: yes
-    state: latest
-# https://docs.ansible.com/ansible/latest/user_guide/playbooks_loops.html
-- name: Install compose (package)
-  apt:
-    name: "{{ docker_compose_packages }}"
-  when: docker_compose_packages is defined
-- name: Disable apt repository
-  apt_repository:
-    repo: "{{ docker_apt_repository }}"
-    state: absent
-  changed_when: no
-- name: Add local-download.docker.com.list.disabled
-  template:
-    src: local-download.docker.com.list
-    dest: /etc/apt/sources.list.d/local-download.docker.com.list.disabled
+# https://stackoverflow.com/questions/36451793/how-do-i-exit-ansible-play-without-error-on-a-condition
+- name: Check docker_install_only_on_weekday
+  when: docker_install_only_on_weekday is defined and docker_install_only_on_weekday != ansible_date_time.weekday
+  block:
+    - name: "Only install / upgrade on {{ docker_install_only_on_weekday }}"
+      ansible.builtin.debug:
+        msg: "docker_install_only_on_weekday={{ docker_install_only_on_weekday }} is set for {{ inventory_hostname }}"
+    - name: End the play
+      ansible.builtin.meta: end_host
+
+- name: Install docker package
+  ansible.builtin.include_tasks: install.yml
 
 # https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
 # group_vars/proxy_required
 - name: Set docker http proxy environment variables
-  template:
+  ansible.builtin.template:
     src: "http-proxy.conf"
     dest: /etc/systemd/system/docker.service.d/
+    mode: '644'
   when: proxy_env is defined
   notify:
     - Reload systemd
@@ -70,12 +50,11 @@
       - op: add
         path: /mtu
         value: 1200
-    pretty: yes
-    create: yes
+    pretty: true
+    create: true
   when: docker_mtu is defined
   notify: restart docker
 
-- name: Install docker compose (manually)
-  include_tasks: docker-compose-manually.yml
-  when: docker_compose_version is defined
-
+# - name: Install docker compose (manually)
+  # ansbile.buildin.include_tasks: docker-compose-manually.yml
+  # when: docker_compose_version is defined

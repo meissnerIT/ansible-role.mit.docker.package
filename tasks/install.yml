@@ -1,0 +1,71 @@
+---
+# mit-ansible-install-package-from-apt-source 2025-01-11
+# 2023-10-12: Initial version
+# 2024-09-18: Cosmetic updates (ansible-lint)
+# 2024-09-19: Added handler "apt-package-has-been-changed"
+# 2025-01-11: Cosmetic updates (Removed ansible-lint warnings)
+# 2025-01-23: Added executable to "Add apt gpg key"
+
+- name: Set defaults
+  ansible.builtin.set_fact:
+    apt_keyrings: /etc/apt/keyrings
+    # used for filenames
+    visible_name: docker
+- name: Set defaults
+  ansible.builtin.set_fact:
+    local_apt_key: "{{ apt_keyrings }}/{{ visible_name }}.gpg"
+- name: Set defaults
+  ansible.builtin.set_fact:
+    apt_package: docker-ce,docker-ce-cli,containerd.io
+    apt_source_list_name: local-download.docker.com.list
+    apt_repository: deb [arch=amd64 signed-by={{ local_apt_key }}]
+      https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
+    gpg_key_src: https://download.docker.com/linux/debian/gpg
+
+- name: Remove /usr/share/keyrings/docker.gpg
+  ansible.builtin.file:
+    path: /usr/share/keyrings/docker.gpg
+    state: absent
+
+# No need to change anything beyond this line
+
+- name: Create {{ apt_keyrings }}
+  ansible.builtin.file:
+    path: "{{ apt_keyrings }}"
+    state: directory
+    mode: '755'
+- name: Install gpg
+  ansible.builtin.apt:
+    pkg: gpg
+- name: Add apt gpg key
+  ansible.builtin.shell: set -o pipefail && wget -q -O - {{ gpg_key_src }} | gpg --dearmor > {{ local_apt_key }}
+  args:
+    creates: "{{ local_apt_key }}"
+    executable: /bin/bash
+  environment: "{{ proxy_env }}"
+- name: Enable apt repository
+  ansible.builtin.apt_repository:
+    repo: "{{ apt_repository }}"
+    state: present
+  changed_when: false
+- name: Install {{ apt_package }}
+  ansible.builtin.apt:
+    name: "{{ apt_package }}"
+    update_cache: true
+    state: present
+  notify: apt-package-has-been-changed
+- name: Deactivate apt repository
+  ansible.builtin.apt_repository:
+    repo: "{{ apt_repository }}"
+    state: absent
+  changed_when: false
+- name: Remove /etc/apt/sources.list.d/{{ apt_source_list_name }}
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/{{ apt_source_list_name }}
+    state: absent
+- name: Add {{ apt_source_list_name }}.disabled # noqa name[template]
+  ansible.builtin.template:
+    src: local-apt.list
+    dest: /etc/apt/sources.list.d/{{ apt_source_list_name }}.disabled
+    mode: '644'
+  changed_when: false
