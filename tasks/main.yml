@@ -55,6 +55,6 @@
   when: docker_mtu is defined
   notify: restart docker
 
-# - name: Install docker compose (manually)
-  # ansbile.buildin.include_tasks: docker-compose-manually.yml
-  # when: docker_compose_version is defined
+- name: Install docker compose (manually)
+  ansible.builtin.include_tasks: docker-compose-manually.yml
+  when: docker_compose_version is defined
