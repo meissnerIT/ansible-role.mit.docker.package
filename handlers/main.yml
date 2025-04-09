@@ -1,11 +1,10 @@
 ---
-
 - name: Reload systemd
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: Restart docker
   ansible.builtin.service:
     name: docker
     state: restarted
-
+  listen: apt-package-has-been-changed

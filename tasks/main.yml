@@ -1,5 +1,4 @@
 ---
-
 # # Variables
 #
 # compose
@@ -27,6 +26,27 @@
     - name: End the play
       ansible.builtin.meta: end_host
 
+- name: Set defaults
+  ansible.builtin.set_fact:
+    apt_keyrings: /etc/apt/keyrings
+    # used for filenames
+    visible_name: docker
+- name: Set defaults
+  ansible.builtin.set_fact:
+    local_apt_key: "{{ apt_keyrings }}/{{ visible_name }}.gpg"
+- name: Set defaults
+  ansible.builtin.set_fact:
+    apt_package: docker-ce,docker-ce-cli,containerd.io
+    apt_source_list_name: local-download.docker.com.list
+    apt_repository: deb [arch=amd64 signed-by={{ local_apt_key }}]
+      https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
+    gpg_key_src: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+
+- name: Remove /usr/share/keyrings/docker.gpg
+  ansible.builtin.file:
+    path: /usr/share/keyrings/docker.gpg
+    state: absent
+
 - name: Install docker package
   ansible.builtin.include_tasks: install.yml
 
@@ -36,7 +56,7 @@
   ansible.builtin.template:
     src: "http-proxy.conf"
     dest: /etc/systemd/system/docker.service.d/
-    mode: '644'
+    mode: "644"
   when: proxy_env is defined
   notify:
     - Reload systemd
@@ -53,7 +73,7 @@
     pretty: true
     create: true
   when: docker_mtu is defined
-  notify: restart docker
+  notify: Restart docker
 
 - name: Install docker compose (manually)
   ansible.builtin.include_tasks: docker-compose-manually.yml
