@@ -29,6 +29,8 @@
 - name: Set defaults
   ansible.builtin.set_fact:
     apt_keyrings: /etc/apt/keyrings
+    # 2.1.5-1~debian.12~bookworm
+    version_suffix: "{{ '~' + ansible_lsb.id | lower + '.' + ansible_lsb.release + '~' + ansible_lsb.codename }}"
     # used for filenames
     visible_name: docker
 - name: Set defaults
@@ -36,7 +38,13 @@
     local_apt_key: "{{ apt_keyrings }}/{{ visible_name }}.gpg"
 - name: Set defaults
   ansible.builtin.set_fact:
-    apt_package: docker-ce,docker-ce-cli,containerd.io
+    apt_package: >
+      docker-buildx-plugin={{ mit_docker_buildx_plugin_version + version_suffix }},
+      docker-ce={{ mit_docker_version + version_suffix }},
+      docker-ce-cli={{ mit_docker_version + version_suffix }},
+      docker-ce-rootless-extras={{ mit_docker_version + version_suffix }},
+      docker-compose-plugin={{ mit_docker_compose_plugin_version + version_suffix }},
+      containerd.io={{ mit_docker_containerd_io_version + version_suffix }}
     apt_source_list_name: local-download.docker.com.list
     apt_repository: deb [arch=amd64 signed-by={{ local_apt_key }}]
       https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
